@@ -1,0 +1,21 @@
+{
+  "extends": "../../.eslintrc.json",
+  "ignorePatterns": ["!**/*"],
+  "overrides": [
+    {
+      "files": "**/!(*.spec).ts",
+      "extends": ["suiyobi/typescript", "suiyobi/node", "suiyobi/rxjs"],
+      "parserOptions": {
+        "project": ["apps/demo/tsconfig.*?.json"]
+      }
+    },
+    {
+      "extends": ["suiyobi/typescript", "suiyobi/node", "suiyobi/jest"],
+      "files": "**/*.spec.ts",
+      "parserOptions": {
+        "project": ["apps/demo/tsconfig.*?.json"]
+      },
+      "settings": { "jest": { "version": 26 } }
+    }
+  ]
+}
