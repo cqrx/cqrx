@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "import/order": [
+      "warn",
+      {
+        "alphabetize": {
+          "caseInsensitive": false,
+          "order": "asc"
+        },
+        "groups": [["external", "builtin"], "internal", "parent", "sibling"],
+        "newlines-between": "always",
+        "pathGroups": [
+          {
+            "group": "external",
+            "pattern": "{@angular/**,@nestjs/**,react,react-native,react-*,@vue/**,vue}",
+            "position": "before"
+          },
+          {
+            "group": "external",
+            "pattern": "@<your-project>/**",
+            "position": "after"
+          }
+        ],
+        "pathGroupsExcludedImportTypes": ["react"]
+      }
+    ]
+  }
+}

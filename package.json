@@ -29,10 +29,15 @@
   "dependencies": {
     "@nestjs/common": "^7.6.15",
     "@nestjs/core": "^7.6.15",
+    "@nestjs/cqrs": "^7.0.1",
     "@nestjs/platform-express": "^7.6.15",
+    "@types/uuid": "^8.3.0",
+    "bcrypt": "^5.0.1",
+    "node-eventstore-client": "^0.2.18",
     "reflect-metadata": "^0.1.13",
     "rxjs": "~6.6.7",
-    "tslib": "^2.1.0"
+    "tslib": "^2.1.0",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@angular/compiler": "^11.2.8",
@@ -46,12 +51,12 @@
     "@nrwl/node": "11.6.1",
     "@nrwl/tao": "11.6.1",
     "@nrwl/workspace": "11.6.1",
+    "@types/bcrypt": "^3.0.0",
     "@types/jest": "26.0.22",
     "@types/node": "14.14.37",
     "dotenv": "8.2.0",
     "eslint": "^7.23.0",
-    "eslint-config-prettier": "8.1.0",
-    "eslint-config-suiyobi": "^0.1.26",
+    "eslint-config-suiyobi": "^0.1.37",
     "graphql": "^15.5.0",
     "jest": "26.6.3",
     "prettier": "2.2.1",

@@ -14,9 +14,13 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {},
+    "paths": {
+      "@cqrx/core": ["libs/core/src/index.ts"],
+      "@cqrx/utils": ["libs/utils/src/index.ts"]
+    },
     "strict": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true
   },
   "exclude": ["node_modules", "tmp"]
 }
