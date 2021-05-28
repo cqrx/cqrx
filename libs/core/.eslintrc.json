@@ -11,7 +11,7 @@
         "../../tools/eslint-import-order.json"
       ],
       "parserOptions": {
-        "project": ["apps/demo/tsconfig.*?.json"]
+        "project": ["libs/core/tsconfig.*?.json"]
       }
     },
     {
@@ -23,7 +23,7 @@
       ],
       "files": "**/*.spec.ts",
       "parserOptions": {
-        "project": ["apps/demo/tsconfig.*?.json"]
+        "project": ["libs/core/tsconfig.*?.json"]
       },
       "settings": { "jest": { "version": 26 } }
     }
