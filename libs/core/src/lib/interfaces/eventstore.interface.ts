@@ -16,4 +16,6 @@ export interface IEventsToSave {
   events: Event[];
 }
 
-export type HandlerFunction<E extends Event = Event> = (event: E) => Observable<void> | Promise<void> | void
+export type HandlerFunction<E extends Event = Event> = (
+  event: E
+) => Observable<void> | Promise<void> | void;

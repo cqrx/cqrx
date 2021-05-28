@@ -2,7 +2,6 @@ import { Body, Controller, Get, Param, Post, Sse } from '@nestjs/common';
 import { CommandBus, EventBus, QueryBus, ofType } from '@nestjs/cqrs';
 
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 
 import { RegisterUser } from './command';
 import { RegisterUserDto, UserDataDto, UserRegisteredDto } from './dto';
@@ -30,10 +29,7 @@ export class UserController {
   }
 
   @Sse('registrations')
-  public getRegistrations$(): Observable<UserRegisteredDto> {
-    return this.eventBus$.pipe(
-      ofType(UserRegistered),
-      map(({ data }) => data)
-    );
+  public getRegistrations$(): Observable<{ data: UserRegisteredDto }> {
+    return this.eventBus$.pipe(ofType(UserRegistered));
   }
 }

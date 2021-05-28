@@ -1,3 +1,4 @@
+import { CqrsModule } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 
 import { AggregateRoot } from './aggregate-root';
@@ -5,7 +6,7 @@ import { AggregateRepository } from './aggregate.repository';
 import { EventHandler } from './decorators/event-handler.decorator';
 import { InjectAggregateRepository } from './decorators/inject-repository.decorator';
 import { Event } from './event';
-import { EventStore } from './eventstore';
+import { EventStore } from './event-store.service';
 import { ConcurrencyException } from './exceptions/concurrency.exception';
 import { InMemoryEventStore } from './utils/in-memory-event-store';
 import { getRepositoryToken } from './utils/repository';
@@ -77,7 +78,7 @@ describe('AggregateRepository', () => {
     expect(eventStore.getPublishedEvents()).toStrictEqual([
       expect.objectContaining({ data: { id: 'Something-1', what: 'stuff' } }),
     ]);
-    expect(something.getUncommittedEvents().events).toHaveLength(0);
+    expect(something.getUncommittedEvents()).toHaveLength(0);
     expect(something.happenings).toStrictEqual(['stuff']);
   });
 
@@ -101,6 +102,7 @@ describe('AggregateRepository', () => {
 
   it(`it's injectable via @InjectAggregateRepository(Something)`, async () => {
     const moduleReference = await Test.createTestingModule({
+      imports: [CqrsModule],
       providers: [
         { provide: EventStore, useClass: InMemoryEventStore },
         {

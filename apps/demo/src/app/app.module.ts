@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
-import { EventStoreModule } from '@cqrx/core';
+import { CqrxModule } from '@cqrx/core';
 
 import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
     CqrsModule,
-    EventStoreModule.forRoot({
+    CqrxModule.forRoot({
       connection: {
         defaultUserCredentials: { username: 'admin', password: 'changeit' },
       },

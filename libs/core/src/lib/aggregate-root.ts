@@ -3,17 +3,22 @@ import { from } from 'rxjs';
 import { AGGREGATE_ROOT_HANDLERS_KEY } from './contract/constant';
 import { Event } from './event';
 import { AggregateHandlerMetadata } from './interfaces';
-import { HandlerFunction, IEventsToSave } from './interfaces/eventstore.interface';
+import { HandlerFunction } from './interfaces/eventstore.interface';
 
-const PENDING_EVENTS = Symbol('Pending Events');
+const INTERNAL_EVENTS = Symbol('Internal Events');
+const VERSION = Symbol('Version');
 
 export class AggregateRoot<E extends Event = Event> {
   constructor(streamName: string, id: string) {
     this.streamId = `${streamName}-${id}`;
   }
 
-  private readonly [PENDING_EVENTS]: E[] = [];
-  private version = -1;
+  private readonly [INTERNAL_EVENTS]: E[] = [];
+  private [VERSION] = -1;
+
+  public get version(): number {
+    return this[VERSION];
+  }
 
   public readonly streamId: string;
 
@@ -26,13 +31,17 @@ export class AggregateRoot<E extends Event = Event> {
     return handlers
       .filter((handler) => event instanceof handler.event)
       .map(
-        ({ key }) => (this[key as keyof this] as unknown) as HandlerFunction
+        ({ key }) => this[key as keyof this] as unknown as HandlerFunction<E>
       );
   }
 
   protected getEventName(event: Event): string {
     const { constructor } = Object.getPrototypeOf(event);
     return constructor.name as string;
+  }
+
+  protected getEventHandler<T extends E = E>(_event: T): Function | undefined {
+    throw new Error('Method not implemented.');
   }
 
   public async apply<T extends E = E>(
@@ -51,28 +60,35 @@ export class AggregateRoot<E extends Event = Event> {
 
       await Promise.all(calls);
 
-      this.version += 1;
+      this[VERSION] += 1;
       return;
     }
 
-    this[PENDING_EVENTS].push(event);
+    this[INTERNAL_EVENTS].push(event);
   }
 
   public async commit(): Promise<void> {
-    const applies = this[PENDING_EVENTS].map(async (event) =>
-      this.apply(event, true)
-    );
+    const applies = this[INTERNAL_EVENTS].map(async (event) => {
+      await this.apply(event, true);
+      this.publish(event);
+    });
 
     await Promise.all(applies);
 
-    this[PENDING_EVENTS].length = 0;
+    this[INTERNAL_EVENTS].length = 0;
   }
 
-  public getUncommittedEvents(): IEventsToSave {
-    return {
-      streamId: this.streamId,
-      expectedVersion: this.version,
-      events: [...this[PENDING_EVENTS]],
-    };
+  public getUncommittedEvents(): E[] {
+    return [...this[INTERNAL_EVENTS]];
+  }
+
+  public publish<T extends E = E>(_event: T): void {}
+
+  public uncommit(): void {
+    throw new Error('Method not implemented.');
+  }
+
+  public loadFromHistory(_history: E[]): void {
+    throw new Error('Method not implemented.');
   }
 }

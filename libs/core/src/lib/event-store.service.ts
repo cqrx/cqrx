@@ -1,4 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 import {
   EventData,
@@ -9,27 +13,25 @@ import {
 } from 'node-eventstore-client';
 
 import { Config } from './contract/config';
-import { EVENT_STORE_SETTINGS_TOKEN, EVENT_STORE_TRANSFORMERS_TOKEN } from './contract/constant';
+import { EVENT_STORE_SETTINGS_TOKEN } from './contract/constant';
 import { Event } from './event';
 import { IEventStore, IEventsToSave } from './interfaces/eventstore.interface';
-import { TransformerRepo } from './interfaces/transformer.type';
+import { TransformerService } from './transformer.service';
 
 @Injectable()
 export class EventStore implements IEventStore {
   constructor(
     @Inject(EVENT_STORE_SETTINGS_TOKEN)
     private readonly settings: Config,
-    @Inject(EVENT_STORE_TRANSFORMERS_TOKEN)
-    private readonly transformers: TransformerRepo
+    private readonly transformers: TransformerService
   ) {
     this.connect();
   }
 
-  public client!: EventStoreNodeConnection;
+  public client: EventStoreNodeConnection | undefined;
   public isConnected = false;
 
   private connect(): void {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-confusing-void-expression -- T
     this.client?.close();
     this.client = createConnection(
       this.settings.connection,
@@ -38,15 +40,15 @@ export class EventStore implements IEventStore {
         'tcp://127.0.0.1:1113'
     );
     this.attachHandlers();
-    this.client.connect();
+    void this.client.connect();
   }
 
   private attachHandlers(): void {
-    this.client.on('connected', () => {
+    this.client?.on('connected', () => {
       this.isConnected = true;
     });
 
-    this.client.on('closed', () => {
+    this.client?.on('closed', () => {
       this.isConnected = false;
       this.connect();
     });
@@ -75,6 +77,11 @@ export class EventStore implements IEventStore {
     streamId,
   }: IEventsToSave): Promise<void> {
     if (events.length === 0) return;
+    if (!this.client) {
+      throw new InternalServerErrorException(
+        'Could not connect to event stream...'
+      );
+    }
 
     await this.client.appendToStream(
       streamId,
@@ -87,10 +94,15 @@ export class EventStore implements IEventStore {
     streamId: string,
     resolveLinkTos = false
   ): AsyncGenerator<Event, void> {
+    if (!this.client) {
+      throw new InternalServerErrorException(
+        'Could not connect to event stream...'
+      );
+    }
+
     const increment = 1000;
 
     for (let current = 0; ; current += increment) {
-      // eslint-disable-next-line no-await-in-loop -- Slices are paginated and we want to maintain order consistency.
       const slice = await this.client.readStreamEventsForward(
         streamId,
         current,
@@ -111,7 +123,7 @@ export class EventStore implements IEventStore {
 
   public convertEvent(resolved: ResolvedEvent): Event | undefined {
     if (resolved.event === undefined) return undefined;
-    const transformer = this.transformers[resolved.event.eventType];
+    const transformer = this.transformers.repo[resolved.event.eventType];
 
     return transformer?.({
       ...resolved.event,

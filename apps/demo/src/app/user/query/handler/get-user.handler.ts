@@ -1,10 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
-import {
-  AggregateRepository,
-  InjectAggregateRepository,
-} from '@cqrx/core';
+import { AggregateRepository, InjectAggregateRepository } from '@cqrx/core';
 
 import { UserDataDto } from '../../dto';
 import { User } from '../../model';
@@ -20,7 +17,7 @@ export class GetUserHandler implements IQueryHandler<GetUser, UserDataDto> {
   public async execute(query: GetUser): Promise<UserDataDto> {
     const user = await this.userRepository.findOne(query.email);
 
-    if ((user as any).version === -1) {
+    if (user.version === -1) {
       throw new NotFoundException();
     }
 

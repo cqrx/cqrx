@@ -15,9 +15,8 @@ describe('UserController', () => {
   let repository: TestAggregateRepository<User>;
 
   beforeEach(async () => {
-    const userRepositoryProvider = TestAggregateRepository.forAggregate<User>(
-      User
-    );
+    const userRepositoryProvider =
+      TestAggregateRepository.forAggregate<User>(User);
 
     const testingModule: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
@@ -52,6 +51,7 @@ describe('UserController', () => {
       email: 'test@example.com',
       password: '12345',
     });
+
     await expect(
       controller.register({
         email: 'test@example.com',
@@ -62,6 +62,7 @@ describe('UserController', () => {
 
   it('should not find users that have not registered', async () => {
     const getUser = controller.getUser('unknown@email.com');
+
     await expect(getUser).rejects.toThrow(NotFoundException);
   });
 
@@ -77,12 +78,14 @@ describe('UserController', () => {
   });
 
   it('should trigger registration subscriptions when users are registered', async (done) => {
-    const subscription = controller.getRegistrations$().subscribe((data) => {
-      expect(data.email).toBe('test@example.com');
+    const subscription = controller
+      .getRegistrations$()
+      .subscribe(({ data }) => {
+        expect(data.email).toBe('test@example.com');
 
-      subscription.unsubscribe();
-      done();
-    });
+        subscription.unsubscribe();
+        done();
+      });
 
     await controller.register({
       email: 'test@example.com',

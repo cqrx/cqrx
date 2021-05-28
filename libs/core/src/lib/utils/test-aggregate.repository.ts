@@ -1,4 +1,5 @@
-import { Type, ValueProvider } from '@nestjs/common';
+import { FactoryProvider, Type } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 
 import { AggregateRoot } from '../aggregate-root';
 import { Event, EventRepo } from '../event';
@@ -6,16 +7,21 @@ import { Event, EventRepo } from '../event';
 import { getRepositoryToken } from './repository';
 
 export class TestAggregateRepository<T extends AggregateRoot> {
-  constructor(private readonly Aggregate: Type<T>) {
+  constructor(
+    private readonly Aggregate: Type<T>,
+    private readonly eventBus$: EventBus
+  ) {
     this.category = Aggregate.name;
   }
 
   public static forAggregate<A extends AggregateRoot>(
     aggregate: Type<A>
-  ): ValueProvider {
+  ): FactoryProvider {
     return {
       provide: getRepositoryToken(aggregate),
-      useValue: new TestAggregateRepository<A>(aggregate),
+      useFactory: (eventBus$: EventBus) =>
+        new TestAggregateRepository(aggregate, eventBus$),
+      inject: [EventBus],
     };
   }
 
@@ -27,28 +33,25 @@ export class TestAggregateRepository<T extends AggregateRoot> {
     const events =
       this.events[aggregate.streamId] ?? (this.events[aggregate.streamId] = []);
 
-    for (const event of events) {
-      aggregate.apply(event, true);
-    }
+    const applies = events.map(async (event) => aggregate.apply(event, true));
+    await Promise.all(applies);
 
-    return Promise.resolve(aggregate);
+    return aggregate;
   }
 
-  public save(a: T): PromiseLike<void> {
-    const eventsToSave = a.getUncommittedEvents();
-    const currentEvents =
-      this.events[eventsToSave.streamId] ??
-      (this.events[eventsToSave.streamId] = []);
+  public async save(aggregate: T): Promise<void> {
+    const events = aggregate.getUncommittedEvents();
 
-    if (eventsToSave.expectedVersion !== currentEvents.length - 1) {
+    const currentEvents =
+      this.events[aggregate.streamId] ?? (this.events[aggregate.streamId] = []);
+
+    if (aggregate.version !== currentEvents.length - 1) {
       throw new Error('Concurrency exception');
     }
 
-    currentEvents.push(...eventsToSave.events);
+    currentEvents.push(...events);
 
-    a.commit();
-
-    return Promise.resolve();
+    await aggregate.commit();
   }
 
   public getEventsFor(id: string): Event[] {
@@ -56,6 +59,8 @@ export class TestAggregateRepository<T extends AggregateRoot> {
   }
 
   public create(id: string): T {
-    return new this.Aggregate(this.category, id);
+    const aggregate = new this.Aggregate(this.category, id);
+    aggregate.publish = this.eventBus$.publish.bind(this.eventBus$);
+    return aggregate;
   }
 }

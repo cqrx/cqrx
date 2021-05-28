@@ -1,6 +1,7 @@
 import {
   DynamicModule,
   Global,
+  InternalServerErrorException,
   Module,
   OnModuleInit,
   Provider,
@@ -10,17 +11,20 @@ import { CqrsModule, EventBus } from '@nestjs/cqrs';
 import { Config } from './contract/config';
 import { EVENT_STORE_SETTINGS_TOKEN } from './contract/constant';
 import { Event } from './event';
-import { EventStore } from './eventstore';
+import { EventStore } from './event-store.service';
 import {
   ConfigService,
   EventStoreModuleAsyncOptions,
 } from './interfaces/options.interface';
+import { TransformerService } from './transformer.service';
 
 @Global()
 @Module({
   imports: [CqrsModule],
+  providers: [EventStore, TransformerService],
+  exports: [EventStore],
 })
-export class EventStoreCoreModule implements OnModuleInit {
+export class CqrxCoreModule implements OnModuleInit {
   constructor(
     private readonly eventBus$: EventBus<Event>,
     private readonly eventStore: EventStore
@@ -32,7 +36,7 @@ export class EventStoreCoreModule implements OnModuleInit {
     if ('useFactory' in options) {
       return {
         provide: EVENT_STORE_SETTINGS_TOKEN,
-        ...options
+        ...options,
       };
     }
 
@@ -48,11 +52,8 @@ export class EventStoreCoreModule implements OnModuleInit {
 
   public static forRoot(config: Config): DynamicModule {
     return {
-      module: EventStoreCoreModule,
-      providers: [
-        EventStore,
-        { provide: EVENT_STORE_SETTINGS_TOKEN, useValue: config },
-      ],
+      module: CqrxCoreModule,
+      providers: [{ provide: EVENT_STORE_SETTINGS_TOKEN, useValue: config }],
       exports: [EventStore],
     };
   }
@@ -61,16 +62,26 @@ export class EventStoreCoreModule implements OnModuleInit {
     options: EventStoreModuleAsyncOptions
   ): DynamicModule {
     return {
-      module: EventStoreCoreModule,
-      providers: [EventStore, this.createAsyncProvider(options)],
-      exports: [EventStore],
+      module: CqrxCoreModule,
+      providers: [this.createAsyncProvider(options)],
     };
   }
 
   public async onModuleInit(): Promise<void> {
-    await this.eventStore.client.subscribeToAll(true, (_s, resolvedEvent) => {
-      const event = this.eventStore.convertEvent(resolvedEvent);
-      if (event) this.eventBus$.subject$.next(event);
-    });
+    if (!this.eventStore.client) {
+      throw new InternalServerErrorException(
+        'Could not connect to event stream...'
+      );
+    }
+
+    await this.eventStore.client.subscribeToStream(
+      '$streams',
+      true,
+      (_s, resolvedEvent) => {
+        if (!resolvedEvent.isResolved) return;
+        const event = this.eventStore.convertEvent(resolvedEvent);
+        if (event) this.eventBus$.subject$.next(event);
+      }
+    );
   }
 }

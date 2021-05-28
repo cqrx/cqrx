@@ -29,7 +29,6 @@ export class InMemoryEventStore implements IEventStore {
     streamId: string,
     _resolveLinkTos?: boolean
   ): Generator<Event, void> {
-
     const events = this.streams[streamId] ?? (this.streams[streamId] = []);
     for (const event of events) {
       yield event;

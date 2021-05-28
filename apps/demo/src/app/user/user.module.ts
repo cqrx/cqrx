@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
-import { Event, EventStoreModule } from '@cqrx/core';
+import { CqrxModule, Event } from '@cqrx/core';
 
 import { COMMAND_HANDLERS } from './command';
 import { UserRegisteredDto } from './dto';
@@ -13,8 +13,9 @@ import { UserController } from './user.controller';
 @Module({
   imports: [
     CqrsModule,
-    EventStoreModule.forFeature([User], {
-      UserRegistered: (event: Event<UserRegisteredDto>) => new UserRegistered(event.data),
+    CqrxModule.forFeature([User], {
+      UserRegistered: (event: Event<UserRegisteredDto>) =>
+        new UserRegistered(event.data),
     }),
   ],
   providers: [...QUERY_HANDLERS, ...COMMAND_HANDLERS],
